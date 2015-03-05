@@ -1,0 +1,74 @@
+/*
+ * Sensor.c
+ *
+ *  Created on: 2015-03-03
+ *      Author: Kyle
+ */
+#include <time.h>
+#include <stdio.h>
+
+#include "Pressure.h"
+
+int pressure_init(Pressure *pressure, int id) {
+	int rando;
+	int returnVal;
+	time_t curr_time;
+
+	rando = srand((unsigned) time(curr_time)) %100;
+
+	pressure->id=id;
+	pressure->pressure = rando;
+	pressure->available = 0;
+
+	returnVal = pthread_mutex_init(&pressure->mutex, NULL);
+	if(returnVal) {
+		printf("Error initialising Sensor %d\n", pressure->id);
+	}
+	return 0;
+}
+int pressure_destroy(Pressure *pressure) {}
+int get_pressure(Pressure *pressure) {
+	int return_val;
+	int pressure_reading;
+
+
+	if(!sensor) {
+		printf("Invalid sensor passed to sensor_get_pressure()\n");
+		return -1;
+	}
+
+	return_val = pthread_mutex_lock(&sensor->mutex);
+	if(return_val) {
+		printf("Error locking the mutex of sensor %d\n", sensor->id);
+		return -1;
+	}
+
+	pressure_reading = sensor->pressure;
+
+	return_val = pthread_mutex_unlock(&sensor->mutex);
+	if(return_val) {
+		printf("Error unlocking mutex of sensor %d\n", sensor->id);
+	}
+	return pressure_reading;
+
+}
+int set_pressure(Pressure *pressure, int pressure) {
+	int rv;
+	if(!sensor) {
+		printf("Invalid sensor passed to sensor_set_pressure()\n");
+		return -1;
+	}
+	rv = pthread_mutex_lock(&sensor->mutex);
+
+	if(rv) {
+		printf("Error locking mutex on sensor %d\n", sensor->id);
+		return -1;
+	}
+	sensor->pressure = pressure;
+	rv = pthread_mutex_unlock(&sensor->mutex);
+	if(rv) {
+		printf("Error unlocking mutex on sensor %d\n", sensor->id);
+		return -1;
+	}
+	return 0;
+}

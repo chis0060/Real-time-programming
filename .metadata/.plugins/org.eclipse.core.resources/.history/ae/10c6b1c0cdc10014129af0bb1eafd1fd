@@ -1,0 +1,14 @@
+/*
+ * Reader.c
+ *
+ *  Created on: 2015-03-03
+ *      Author: Kyle
+ */
+
+
+int monitor_init(Monitor *monitor, int num_sensors) {
+
+}
+int monitor_destroy(Monitor *monitor) {
+
+}

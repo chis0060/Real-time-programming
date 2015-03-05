@@ -1,0 +1,116 @@
+/*
+ * Reader.c
+ *
+ *  Created on: 2015-03-03
+ *      Author: Kyle
+ */
+#include "Pressure.h"
+#include "Monitor.h"
+
+int init_pressures(Monitor *monitor);
+int init_sensors(Monitor *monitor, thread_action sensorThread);
+int init_readers(Monitor *monitor, thread_action readerThread);
+
+int monitor_init(Monitor *monitor, int num_sensors, thread_action sensorThread, thread_action readerThread) {
+	int ret_val;
+
+	if(!monitor) {
+		printf("Invalid monitor passed to monitor_init()\n");
+		return -1;
+	}
+
+	monitor->available = 1;
+	monitor->num_sensors = num_sensors;
+	monitor->release = 0;
+
+	ret_val = init_pressures(monitor);
+	/*if(ret_val) {
+		printf("Error initialising pressure in init_pressures()\n");
+		return -1;
+	}*/
+	ret_val = init_sensors(monitor, sensorThread);
+
+	if(ret_val)
+		return ret_val;
+
+	ret_val = init_readers(monitor, readerThread);
+
+		return ret_val;
+}
+int monitor_destroy(Monitor *monitor) {
+	int i;
+
+	if(!monitor) {
+		printf("Invalid monitor passed to monitor_destroy()\n");
+		return -1;
+	}
+	if(monitor->sensor_threads) {
+		for(i=0; i<monitor->num_sensors; ++i) {
+			pthread_join(monitor->sensor_threads[i], NULL);
+			printf("Reader %d - destroyed\n", i+1);
+		}
+		free(monitor->sensor_threads);
+	}
+	if(monitor->reader_threads) {
+		for(i=0; i<monitor->num_sensors; ++i) {
+			pthread_join(monitor->sensor_threads[i], NULL);
+			printf("Sensor $d - Destroyed\n", i+1);
+		}
+		free(monitor->reader_threads);
+	}
+	if(monitor->pressures) {
+		for(i=0; i<monitor->num_sensors; ++i) {
+			pthread_join(&monitor->pressures, NULL);
+			pressure_destroy(&monitor->pressures);
+		}
+		free(monitor->pressures);
+	}
+	return 0;
+}
+int init_pressures(Monitor *monitor) {
+	int i;
+	int ret_val;
+
+	monitor->pressures = (Pressure *) malloc(sizeof(Pressure) * monitor->num_sensors);
+
+	/*if(!monitor->pressures) {
+		printf("Error, invalid monitor->pressures passed to init_pressures()\n");
+		return -1;
+	}*/
+	for(i=0; i<monitor->num_sensors; ++i) {
+		ret_val = pressure_init(&monitor->pressures[i], i);
+		if(ret_val)
+			return ret_val;
+	}
+	return 0;
+}
+int init_sensors(Monitor *monitor, thread_action sensorThread) {
+	int i;
+
+	monitor->sensor_threads = (pthread_t *) malloc(sizeof(pthread_t) * monitor->num_sensors);
+
+	for(i=0; i<monitor->num_sensors; ++i) {
+		pthread_attr_t attr;
+		pthread_attr_init(&attr);
+		pthread_create(&monitor->sensor_threads[i], &attr, sensorThread, &monitor->pressures[i]);
+		pthread_attr_destroy(&attr);
+		printf("Sensor %d created.\n", i+1);
+	}
+
+	return 0;
+}
+int init_readers(Monitor *monitor, thread_action readerThread) {
+	int i;
+
+	monitor->reader_threads = (pthread_t *) malloc(sizeof(pthread_t) * monitor->num_sensors);
+
+	for(i=0; i<monitor->num_sensors; ++i) {
+    	pthread_attr_t attr;
+	    pthread_attr_init(&attr);
+	    pthread_create(&monitor->reader_threads[i], &attr, readerThread, &monitor->pressures[i]);
+	    pthread_attr_destroy(&attr);
+	    printf("Reader %d created.\n", i+1);
+	}
+	return 0;
+}
+

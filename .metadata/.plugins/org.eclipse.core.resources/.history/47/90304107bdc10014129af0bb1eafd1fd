@@ -1,0 +1,26 @@
+/*
+ * Sensor.h
+ *
+ *  Created on: 2015-03-02
+ *      Author: Kyle
+ */
+
+#ifndef SENSOR_H
+#define SENSOR_H
+
+#include <pthread.h>
+
+typedef struct Sensor
+{
+	int id;
+	int available;
+	int pressure;
+	pthread_mutex_t mutex;
+} Sensor;
+
+int sensor_init();
+int sensor_destroy();
+int sensor_get_pressure();
+int sensor_set_pressure();
+
+#endif /* SENSOR_H */

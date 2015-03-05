@@ -1,0 +1,113 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <pthread.h>
+#include <signal.h>
+#include <time.h>
+
+#include "Pressure.h"
+#include "Monitor.h"
+/* Definitions */
+#define MAX_PRESSURE 80
+/* Function prototypes */
+void * sensorThread(void *);
+void * readerThread(void *);
+void sigint_handler(int);
+void mem_clean(void);
+static Monitor monitor;
+/* Main */
+int main(int argc, char *argv[]) {
+	int numThreads = 0;			// number of requested threads
+	int ret_val;				// error checker
+	/* Register a signal handler for catching SIGUSR1 (used to terminate program) */
+	signal(SIGUSR1, sigint_handler);
+	/* Prompt for number of threads to create */
+	printf("How many sensors would you like to create?\n");
+	scanf("%d", &numThreads);
+	/* initialise global monitor object */
+	ret_val = monitor_init(&monitor, numThreads, sensorThread, readerThread);
+	if(ret_val)
+		return EXIT_FAILURE;
+	/* Loop continuously until global available flag is turned off (only turned off when SIGUSR1 is caught) */
+	while(monitor.available) {
+		/* Release flag indicates a sensor needs pressure released */
+		if(monitor.release) {
+			/* Catch the ID of the associated sensor/reader/Pressure, release_id is set by the reader */
+			int id = monitor.release_id;
+			/* Main does its arbitrary task */
+			printf("Reader %d - Sensor %d has reached %d psi!\n", monitor.release_id+1, id+1, monitor.pressure_reading);
+			printf("Pausing: Releasing pressure on Sensor %d\n", monitor.release_id+1);
+			sleep(5);
+			printf("System resuming operation\n");
+			/* pressure has been released, turn the flag off to resume normal operating procedures */
+			monitor.release = 0;
+			/* Manually set the pressure back to 0 (otherwise program continues reading the same sensor forever) */
+			monitor.pressures[monitor.release_id].pressure = 0;
+		}
+	}
+	/*Program is closing (sigint_handler has caught SIGUSR1 and has left the loop) */
+	printf("Shutting down system.\n");
+	mem_clean();	// de-allocate all heap memory before closing
+	return EXIT_SUCCESS;
+
+} // Main
+/* Sensors */
+void * sensorThread(void *sensor) {
+	/* sensor thread cast as a Pressure struct */
+	Pressure *pressure = (Pressure *) sensor;
+	int new_pressure;	// temp value of new random pressure
+	time_t curr_time;	// used to seed random number generator
+
+		srand(time(&curr_time));				// Seed random number generator (once)
+		new_pressure = rand() % 101;			// Generate a random number (max 100)
+		set_pressure(pressure, new_pressure);	// Set the pressure value of the associated pressure struct to the new random one
+	/* thread stays in this loop until the system begins shutting down */
+	while(monitor.available) {
+		/* if the system is releasing a sensors pressure, wait here */
+		if(monitor.release) {
+			sleep(1);
+			continue;
+		}
+		/* Generate a new random number and assign it to the pressure struct */
+		new_pressure = rand() % 100;
+		set_pressure(pressure, new_pressure);
+		printf("Sensor %d - pressure = %d\n" ,pressure->id+1,  new_pressure);
+		sleep(1);	// otherwise an endless stream of numbers!
+	}
+	return NULL;
+}
+/* Readers */
+void * readerThread(void *reader) {
+	/* thread cast as a pressure struct */
+	Pressure *pressure = (Pressure *) reader;
+	int psi;	// Pressure read by reader thread
+	/* thread stays in this loop until the system begins shutting down */
+	while(monitor.available) {
+		/* if the system is releasing a sensors pressure, wait here */
+		if(monitor.release) {
+			sleep(1);
+			continue;
+		}
+		/* If the reader reads a pressure thats 80psi or higher */
+		if(80 <= (psi = get_pressure(pressure))) {
+			printf("Reader %d read %d psi\n",pressure->id+1, psi);
+			monitor.release_id = pressure->id;
+			monitor.pressure_reading = psi;
+			monitor.release = 1;
+		}
+
+	}
+	return NULL;
+
+}
+/* Signal handler */
+void sigint_handler(int sig) {
+	if(SIGUSR1 == sig) {
+		printf("Caught You!\n");
+		monitor.available = 0;
+	}
+}
+
+void mem_clean(void) {
+	monitor_destroy(&monitor);
+}

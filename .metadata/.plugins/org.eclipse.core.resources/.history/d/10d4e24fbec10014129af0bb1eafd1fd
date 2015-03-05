@@ -1,0 +1,58 @@
+/*
+ * Sensor.c
+ *
+ *  Created on: 2015-03-03
+ *      Author: Kyle
+ */
+#include <time.h>
+#include <stdio.h>
+
+#include "Sensor.h"
+
+int sensor_init(Sensor *sensor, int id) {
+	int rando;
+	int returnVal;
+	time_t curr_time;
+
+	rando = srand((unsigned) time(curr_time)) %100;
+
+	sensor->id=id;
+	sensor->pressure = rando;
+	sensor->available = 0;
+
+	returnVal = pthread_mutex_init(&sensor->mutex, NULL);
+	if(returnVal) {
+		printf("Error initialising Sensor %d\n", sensor->id);
+	}
+	return 0;
+}
+int sensor_destroy(Sensor *sensor) {
+
+}
+int sensor_get_pressure(Sensor *sensor) {
+	int return_val;
+	int pressure_reading;
+
+
+	if(!sensor) {
+		printf("Invalid sensor passed to sensor_get_pressure()\n");
+		return -1;
+	}
+
+	return_val = pthread_mutex_lock(&sensor->mutex);
+	if(return_val) {
+		printf("Error locking the mutex of sensor %d\n", sensor->id);
+		return -1;
+	}
+
+	pressure_reading = sensor->pressure;
+
+	return_val = pthread_mutex_unlock(&sensor->mutex);
+	if(return_val) {
+		printf("Error unlocking mutex of sensor %d\n", sensor->id);
+	}
+
+}
+int sensor_set_pressure(Sensor *sensor) {
+
+}

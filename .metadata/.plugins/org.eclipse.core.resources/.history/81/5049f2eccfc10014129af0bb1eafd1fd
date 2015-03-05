@@ -1,0 +1,44 @@
+/*
+ * Reader.c
+ *
+ *  Created on: 2015-03-03
+ *      Author: Kyle
+ */
+#include "Pressure.h"
+#include "Monitor.h"
+
+int init_pressures(Pressure *pressure);
+int init_sensors(Monitor *monitor, thread_action sensorThread);
+int init_readers(Monitor *monitor, thread_action readerThread);
+
+int monitor_init(Monitor *monitor, int num_sensors) {
+	int ret_val;
+
+	if(!monitor) {
+		printf("Invalid monitor passed to monitor_init()\n");
+		return -1;
+	}
+
+	monitor->available = 1;
+	monitor->num_sensors = num_sensors;
+
+	ret_val = init_pressures(monitor);
+	if(ret_val) {
+		printf("Error initialising pressure in init_pressures()\n");
+		return -1;
+	}
+	ret_val = init_sensors(monitor, sensorThread);
+
+	if(ret_val)
+		return ret_val;
+
+	ret_val = init readers(monitor, readerThread);
+
+		return ret_val;
+}
+int monitor_destroy(Monitor *monitor) {
+
+}
+int init_pressures(Pressure *pressure) {
+
+}

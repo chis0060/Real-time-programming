@@ -1,0 +1,37 @@
+/*
+ * Reader.h
+ *
+ *  Created on: 2015-03-02
+ *      Author: Kyle
+ */
+
+#ifndef MONITOR_H
+#define MONITOR_H
+
+#define MAX_PRESSURE 80
+
+#include <stdio.h>
+#include <pthread.h>
+#include <signal.h>
+
+#include "Pressure.h"
+
+typedef struct Monitor {
+
+	sig_atomic_t available;
+	sig_atomic_t release;
+	int release_id;
+	int num_sensors;
+	int pressure_reading;
+	Pressure *pressures;
+	pthread_t *sensor_threads;
+	pthread_t *reader_threads;
+
+} Monitor;
+
+typedef void * (*thread_action)(void *);
+
+int monitor_init(Monitor *monitor, int num_sensors, thread_action sensorThread, thread_action readerThread);
+int monitor_destroy(Monitor *monitor);
+
+#endif /* MONITOR_H */

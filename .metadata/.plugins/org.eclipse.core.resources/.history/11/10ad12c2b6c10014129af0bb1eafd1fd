@@ -1,0 +1,14 @@
+/*
+ * Reader.h
+ *
+ *  Created on: 2015-03-02
+ *      Author: Kyle
+ */
+
+#ifndef READER_H
+#define READER_H
+typedef struct Reader {
+
+} Reader;
+
+#endif /* READER_H */

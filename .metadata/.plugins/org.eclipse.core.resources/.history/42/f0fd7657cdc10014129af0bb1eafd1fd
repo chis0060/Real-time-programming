@@ -1,0 +1,24 @@
+/*
+ * Reader.h
+ *
+ *  Created on: 2015-03-02
+ *      Author: Kyle
+ */
+
+#ifndef MONITOR_H
+#define MONITOR_H
+
+#include "Pressure.h"
+typedef struct Monitor {
+
+	int num_sensors;
+	Pr
+
+} Monitor;
+
+typedef void * (*thread_action)(void *);
+
+int monitor_init();
+int monitor_destroy();
+
+#endif /* MONITOR_H */

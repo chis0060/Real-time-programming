@@ -1,0 +1,19 @@
+/*
+ * Reader.c
+ *
+ *  Created on: 2015-03-03
+ *      Author: Kyle
+ */
+#include "Pressure.h"
+#include "Monitor.h"
+
+int init_pressures(Pressure *pressure);
+int init_sensors(Monitor *monitor);
+int init_readers(Monitor *monitor);
+
+int monitor_init(Monitor *monitor, int num_sensors) {
+
+}
+int monitor_destroy(Monitor *monitor) {
+
+}

@@ -1,0 +1,96 @@
+/*
+ * Sensor.c
+ *
+ *  Created on: 2015-03-03
+ *      Author: Kyle
+ */
+#include <time.h>
+#include <stdio.h>
+
+#include "Pressure.h"
+/* Initialise Pressure structs */
+int pressure_init(Pressure *pressure, int id) {
+	int returnVal;	// ret_val used for checking return status of functions
+	/* Initialise with the given ID */
+	pressure->id=id;
+	/* Initialise the Mutex associated with this struct */
+	returnVal = pthread_mutex_init(&pressure->mutex, NULL);
+	if(returnVal) {
+		printf("Error initialising Sensor %d\n", pressure->id);
+	}
+	return 0;
+}
+/* free memory associated with Pressure Structs */
+int pressure_destroy(Pressure *pressure) {
+	int ret_val;	// Error checking
+
+	if(!pressure) {
+		printf("Invalid pressure - pressure_destroy()\n");
+		return -1;
+	}
+	/* Unlock this pressure structs mutex first so it can be destroyed */
+	pthread_mutex_unlock(&pressure->mutex);
+	ret_val = pthread_mutex_destroy(&pressure->mutex);
+
+	if(ret_val) {
+		printf("Could not destroy mutex - pressure_destroy()\n");
+		printf("pthread_mutex_destroy = %d\n", ret_val);
+		return ret_val;
+	}
+
+	return 0;
+}
+/* Return the value of the pressure for a given Pressure struct */
+int get_pressure(Pressure *pressure) {
+	int return_val;			// Error checking
+	int pressure_reading;	// The value of the pressure for specified Pressure struct
+
+	if(!pressure) {
+		printf("Invalid sensor passed to sensor_get_pressure()\n");
+		return -1;
+	}
+	/* Lock the mutex on this pressure struct to deny read/write while reading the value */
+	return_val = pthread_mutex_lock(&pressure->mutex);
+
+	if(return_val) {
+		printf("Error locking the mutex of sensor %d\n", pressure->id);
+		return -1;
+	}
+	/* grab the pressure value */
+	pressure_reading = pressure->pressure;
+	/* Unlock the mutex once the value has been read */
+	return_val = pthread_mutex_unlock(&pressure->mutex);
+
+	if(return_val) {
+		printf("Error unlocking mutex of sensor %d\n", pressure->id);
+	}
+	/* Return the value of specified pressure structs pressure */
+	return pressure_reading;
+
+}
+/* Manually set the value of a Pressure structs pressure (typical set/get method) */
+int set_pressure(Pressure *pressure, int pressure_value) {
+	int rv;		// Error checking
+
+	if(!pressure) {
+		printf("Invalid sensor passed to sensor_set_pressure()\n");
+		return -1;
+	}
+	/* Lock the mutex before writing to the struct */
+	rv = pthread_mutex_lock(&pressure->mutex);
+
+	if(rv) {
+		printf("Error locking mutex on sensor %d\n", pressure->id);
+		return -1;
+	}
+	/* Manually set the pressure of specified struct with given value */
+	pressure->pressure = pressure_value;
+	/* Unlock the mutex once finished writing */
+	rv = pthread_mutex_unlock(&pressure->mutex);
+
+	if(rv) {
+		printf("Error unlocking mutex on sensor %d\n", pressure->id);
+		return -1;
+	}
+	return 0;
+}
